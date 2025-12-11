@@ -351,6 +351,7 @@
 -r:"Library/Bee/artifacts/200b0aE.dag/UnityEditor.UI.ref.dll"
 -r:"Library/Bee/artifacts/200b0aE.dag/UnityEngine.TestRunner.ref.dll"
 -r:"Library/Bee/artifacts/200b0aE.dag/UnityEngine.UI.ref.dll"
+"Assets/Scripts/Editor/AddJudgmentLine.cs"
 "Assets/Scripts/Editor/AddPauseSystem.cs"
 "Assets/Scripts/Editor/MainMenuSetup.cs"
 "Assets/Scripts/Editor/SceneSetup.cs"

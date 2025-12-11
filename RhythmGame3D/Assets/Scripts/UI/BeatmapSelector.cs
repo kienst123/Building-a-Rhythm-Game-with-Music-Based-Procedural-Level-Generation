@@ -25,6 +25,7 @@ namespace RhythmGame3D.UI
         [Header("Selected Beatmap")]
         public string selectedMusicFile = "";
         public int selectedDifficulty = 0; // 0=Easy, 1=Normal, 2=Hard
+        private float musicDuration = 180f; // Default 3 minutes, will be updated when loading audio
         
         // Static property to pass data to gameplay scene
         public static BeatmapData currentBeatmap { get; private set; }
@@ -195,13 +196,58 @@ namespace RhythmGame3D.UI
             // Store music path
             currentMusicPath = musicPath;
             
-            // Create a simple beatmap for testing
-            // TODO: Use BeatLearning for intelligent generation
-            BeatmapData beatmap = CreateSimpleBeatmap(musicPath);
+            // Load audio to get duration, then create beatmap
+            StartCoroutine(LoadAudioAndGenerateBeatmap(musicPath));
+        }
+        
+        /// <summary>
+        /// Load audio file to get duration, then generate beatmap
+        /// </summary>
+        System.Collections.IEnumerator LoadAudioAndGenerateBeatmap(string musicPath)
+        {
+            // Convert to file:// URL format
+            string url = "file://" + musicPath;
             
-            currentBeatmap = beatmap;
+            // Determine audio type from extension
+            AudioType audioType = AudioType.MPEG;
+            string ext = System.IO.Path.GetExtension(musicPath).ToLower();
+            if (ext == ".ogg")
+                audioType = AudioType.OGGVORBIS;
+            else if (ext == ".wav")
+                audioType = AudioType.WAV;
             
-            Debug.Log($"[BeatmapSelector] Beatmap generated with {beatmap.hitObjects.Count} notes");
+            using (UnityEngine.Networking.UnityWebRequest www = UnityEngine.Networking.UnityWebRequestMultimedia.GetAudioClip(url, audioType))
+            {
+                yield return www.SendWebRequest();
+                
+                if (www.result == UnityEngine.Networking.UnityWebRequest.Result.Success)
+                {
+                    AudioClip clip = UnityEngine.Networking.DownloadHandlerAudioClip.GetContent(www);
+                    musicDuration = clip.length;
+                    
+                    Debug.Log($"[BeatmapSelector] Audio loaded! Duration: {musicDuration:F2} seconds ({musicDuration/60:F2} minutes)");
+                    
+                    // Now create beatmap with actual duration
+                    BeatmapData beatmap = CreateSimpleBeatmap(musicPath);
+                    currentBeatmap = beatmap;
+                    
+                    Debug.Log($"[BeatmapSelector] Beatmap generated with {beatmap.hitObjects.Count} notes for {musicDuration:F2}s");
+                    
+                    UpdateUI();
+                }
+                else
+                {
+                    Debug.LogError($"[BeatmapSelector] Failed to load audio: {www.error}");
+                    Debug.LogWarning("[BeatmapSelector] Using default duration of 3 minutes");
+                    
+                    // Fallback: use default duration
+                    musicDuration = 180f;
+                    BeatmapData beatmap = CreateSimpleBeatmap(musicPath);
+                    currentBeatmap = beatmap;
+                    
+                    UpdateUI();
+                }
+            }
         }
         
         /// <summary>
@@ -243,8 +289,10 @@ namespace RhythmGame3D.UI
             
             float interval = 1.0f / notesPerSecond;
             
-            // Generate for 60 seconds or actual duration if we can get it
-            float duration = 60f;
+            // Generate for full song duration (actual audio length)
+            float duration = musicDuration;
+            
+            Debug.Log($"[BeatmapSelector] Generating beatmap - Duration: {duration:F2}s, Difficulty: {GetDifficultyName(selectedDifficulty)}, Notes/sec: {notesPerSecond}");
             
             // Smart pattern generation
             System.Random random = new System.Random();

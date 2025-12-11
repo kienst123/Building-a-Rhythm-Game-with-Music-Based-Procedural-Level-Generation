@@ -30,6 +30,7 @@ namespace RhythmGame3D.Core
         public float maxHealth = 100f;
         public float healthGainPerHit = 1f;
         public float healthLossPerMiss = 5f;
+        public float healthLossPerEmptyPress = 2f;  // Penalty for pressing with no note
         
         // State
         private BeatmapData currentBeatmap;
@@ -49,6 +50,12 @@ namespace RhythmGame3D.Core
             {
                 judgmentSystem.OnJudgment += OnJudgmentReceived;
                 judgmentSystem.OnComboChange += OnComboChanged;
+            }
+            
+            // Subscribe to input events
+            if (inputManager != null)
+            {
+                inputManager.OnEmptyPress += OnEmptyPress;
             }
             
             // Check if beatmap was passed from menu
@@ -376,6 +383,33 @@ namespace RhythmGame3D.Core
             if (uiManager != null)
             {
                 uiManager.UpdateCombo(combo);
+            }
+        }
+        
+        /// <summary>
+        /// Handle empty press (player pressed key with no note nearby)
+        /// </summary>
+        void OnEmptyPress()
+        {
+            // Apply health penalty
+            currentHealth -= healthLossPerEmptyPress;
+            
+            // Clamp health between 0 and max
+            currentHealth = Mathf.Clamp(currentHealth, 0f, maxHealth);
+            
+            // Update UI
+            if (uiManager != null)
+            {
+                float normalizedHealth = currentHealth / maxHealth;
+                uiManager.UpdateHealth(normalizedHealth);
+                Debug.Log($"[GameManager3D] EMPTY PRESS! Health: {currentHealth:F1}/{maxHealth} ({normalizedHealth:P0}) [-{healthLossPerEmptyPress}]");
+            }
+            
+            // Check game over
+            if (currentHealth <= 0f)
+            {
+                Debug.LogWarning("[GameManager3D] Health depleted from empty presses! Game Over!");
+                GameOver();
             }
         }
         

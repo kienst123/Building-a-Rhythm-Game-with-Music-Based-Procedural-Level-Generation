@@ -21,6 +21,10 @@ namespace RhythmGame3D.Gameplay
         
         [Header("Settings")]
         public float hitWindow = 0.18f;  // Maximum timing window for any hit
+        public float emptyPressHealthPenalty = 2f;  // Health lost for pressing with no note nearby
+        
+        // Event for empty press (no note)
+        public System.Action OnEmptyPress;
         
         private float currentSongTime;
         
@@ -52,7 +56,11 @@ namespace RhythmGame3D.Gameplay
             
             if (note == null)
             {
-                Debug.Log($"[InputManager3D] No note found in lane {lane}");
+                Debug.Log($"[InputManager3D] No note found in lane {lane} - EMPTY PRESS PENALTY");
+                
+                // Fire empty press event (for health penalty)
+                OnEmptyPress?.Invoke();
+                
                 return;
             }
             
@@ -74,7 +82,10 @@ namespace RhythmGame3D.Gameplay
             }
             else
             {
-                Debug.Log($"[InputManager3D] Lane {lane} - note too far ({timingDiff * 1000f:F1}ms)");
+                Debug.Log($"[InputManager3D] Lane {lane} - note too far ({timingDiff * 1000f:F1}ms) - EMPTY PRESS PENALTY");
+                
+                // Note exists but too far away - treat as empty press
+                OnEmptyPress?.Invoke();
             }
         }
         

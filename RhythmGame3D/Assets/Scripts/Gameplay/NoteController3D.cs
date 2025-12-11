@@ -52,25 +52,66 @@ namespace RhythmGame3D.Gameplay
             isLongNote = hitObj.isLongNote;
             isHit = false;
             
-            // Set color
+            // Set color will be called separately by spawner with random color
+            // So we don't set color here anymore
+            
+            // Create long note tail if needed
+            if (isLongNote)
+            {
+                CreateLongNoteTail();
+            }
+        }
+        
+        /// <summary>
+        /// Set note color (called from spawner for random colors)
+        /// </summary>
+        public void SetColor(Color color)
+        {
+            noteColor = color;
+            
+            // Update main note color - use material instance instead of PropertyBlock
             if (meshRenderer != null)
             {
-                MaterialPropertyBlock propBlock = new MaterialPropertyBlock();
-                propBlock.SetColor("_Color", noteColor);
-                meshRenderer.SetPropertyBlock(propBlock);
+                // Create a new material instance to avoid sharing
+                Material mat = new Material(meshRenderer.sharedMaterial);
+                mat.color = noteColor;
+                
+                // Enable emission for brighter colors
+                if (mat.HasProperty("_EmissionColor"))
+                {
+                    mat.SetColor("_EmissionColor", noteColor * 0.5f);
+                    mat.EnableKeyword("_EMISSION");
+                }
+                
+                meshRenderer.material = mat;
             }
             
-            // Setup trail
+            // Update trail color
             if (trailRenderer != null)
             {
                 trailRenderer.startColor = noteColor;
                 trailRenderer.endColor = new Color(noteColor.r, noteColor.g, noteColor.b, 0f);
             }
             
-            // Create long note tail if needed
-            if (isLongNote)
+            // Update long note tail color if exists
+            if (tailObject != null)
             {
-                CreateLongNoteTail();
+                MeshRenderer tailRenderer = tailObject.GetComponent<MeshRenderer>();
+                if (tailRenderer != null)
+                {
+                    Material tailMat = new Material(tailRenderer.sharedMaterial);
+                    Color tailColor = noteColor;
+                    tailColor.a = 0.5f;
+                    tailMat.color = tailColor;
+                    
+                    if (tailMat.HasProperty("_EmissionColor"))
+                    {
+                        tailMat.SetColor("_EmissionColor", noteColor * 0.3f);
+                        tailMat.EnableKeyword("_EMISSION");
+                    }
+                    
+                    tailRenderer.material = tailMat;
+                }
             }
         }
         
@@ -108,13 +149,9 @@ namespace RhythmGame3D.Gameplay
             tailObject.transform.localPosition = new Vector3(0, 0, longNoteLength / 2f);
             tailObject.transform.localScale = new Vector3(1f, 1f, longNoteLength);
             
-            // Apply semi-transparent material
+            // Color will be set by SetColor() method later
+            // Just get the renderer ready
             MeshRenderer tailRenderer = tailObject.GetComponent<MeshRenderer>();
-            Material tailMat = new Material(meshRenderer.material);
-            Color tailColor = noteColor;
-            tailColor.a = 0.5f;
-            tailMat.color = tailColor;
-            tailRenderer.material = tailMat;
             
             // Remove collider
             Destroy(tailObject.GetComponent<Collider>());

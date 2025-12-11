@@ -33,6 +33,14 @@ namespace RhythmGame3D.Gameplay
             new Color(0.8f, 0.8f, 0.8f, 0.3f)   // Lane 3 - Light gray
         };
         
+        [Header("Note Colors")]
+        public Color[] noteColors = new Color[] {
+            new Color(1f, 0.2f, 0.2f, 1f),      // Bright Red
+            new Color(0.2f, 1f, 0.2f, 1f),      // Bright Green
+            new Color(0.3f, 0.6f, 1f, 1f),      // Bright Blue
+            new Color(1f, 1f, 0.2f, 1f)         // Bright Yellow
+        };
+        
         [Header("References")]
         public JudgmentSystem judgmentSystem;  // For triggering miss judgments
         
@@ -200,8 +208,12 @@ namespace RhythmGame3D.Gameplay
             Vector3 spawnPos = new Vector3(xPos, 0.5f, spawnDistance);
             noteObj.transform.position = spawnPos;
             
-            // Initialize note controller
+            // Choose random color from noteColors array
+            Color randomColor = noteColors[Random.Range(0, noteColors.Length)];
+            
+            // Initialize note controller with random color
             controller.Initialize(hitObject, noteSpeed, hitPosition);
+            controller.SetColor(randomColor);
             
             // Subscribe to miss callback
             controller.onMissed += OnNoteMissed;
